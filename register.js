@@ -1,37 +1,49 @@
-const registerForm = document.getElementById("registerForm");
 
-registerForm.addEventListener("submit", function (event) {
-    event.preventDefault();
 
-    const username = document.getElementById("regUsername").value.trim();
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("regPassword").value;
+function register() {
 
-    if (!username || !email || !password) {
-        alert("Please enter all fields.");
+    let name = document.getElementById("regUsername").value.trim();
+    let email = document.getElementById("email").value.trim();
+    let password = document.getElementById("regPassword").value;
+
+    if (name == "" || email == "" || password == "") {
+
+        alert("Please fill all fields");
         return;
+
     }
 
-    const users = JSON.parse(localStorage.getItem("users")) || [];
+    let users = JSON.parse(localStorage.getItem("users")) || [];
 
-    const existingUser = users.find(function (user) {
-        return user.username.toLowerCase() === username.toLowerCase() ||
-               user.email.toLowerCase() === email.toLowerCase();
-    });
+    // Check existing email
+
+    let existingUser = users.find(user => user.email.toLowerCase() == email.toLowerCase());
 
     if (existingUser) {
-        alert("Username or email already exists.");
+
+        alert("Email is already registered");
         return;
+
     }
 
-    users.push({
-        username: username,
+    // Create new user
+
+    let newUser = {
+
+        name: name,
         email: email,
         password: password
-    });
+
+    };
+
+    users.push(newUser);
+
+    // Store user details
 
     localStorage.setItem("users", JSON.stringify(users));
 
-    alert("User Registered Successfully!");
+    alert("Account created successfully");
+
     window.location.href = "index.html";
-});
+
+}

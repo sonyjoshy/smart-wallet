@@ -1,147 +1,369 @@
-const username = localStorage.getItem("loggedInUser");
 
-if (!username) {
-    alert("Please login first.");
+// Get logged-in user
+
+let loggedInUser = localStorage.getItem("loggedInUser");
+let loggedInName = localStorage.getItem("loggedInName");
+
+// Check login
+
+if (!loggedInUser) {
+
     window.location.href = "index.html";
-} else {
-    document.getElementById("welcomeUser").textContent = username;
 
-    const incomeForm = document.getElementById("incomeForm");
-    const expenseForm = document.getElementById("expenseForm");
-    const clearBtn = document.getElementById("clearBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
+}
 
-    const storageKey = "transactions_" + username;
+// Display username
 
-    function getTransactions() {
-        return JSON.parse(localStorage.getItem(storageKey)) || [];
+document.getElementById("welcomeUser").innerHTML = loggedInName;
+
+
+// Get user key
+
+function getUserKey(key) {
+
+    return key + "_" + loggedInUser;
+
+}
+
+
+// Get incomes
+
+function getIncomes() {
+
+    return JSON.parse(localStorage.getItem(getUserKey("incomes"))) || [];
+
+}
+
+
+// Get expenses
+
+function getExpenses() {
+
+    return JSON.parse(localStorage.getItem(getUserKey("expenses"))) || [];
+
+}
+
+
+// Format amount
+
+function formatAmount(amount) {
+
+    return "₹ " + Number(amount).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+
+}
+
+
+// Add Income
+
+function addIncome() {
+
+    let type = document.getElementById("incomeType").value.trim();
+    let amount = Number(document.getElementById("incomeAmount").value);
+
+    if (type == "" || amount <= 0 || !Number.isFinite(amount)) {
+
+        alert("Please enter valid income details");
+        return;
+
     }
 
-    function saveTransactions(transactions) {
-        localStorage.setItem(storageKey, JSON.stringify(transactions));
+    let incomes = getIncomes();
+
+    let income = {
+
+        type: type,
+        amount: amount,
+        date: new Date().toLocaleString("en-IN")
+
+    };
+
+    incomes.push(income);
+
+    localStorage.setItem(getUserKey("incomes"), JSON.stringify(incomes));
+
+    alert("Income added successfully");
+
+    document.getElementById("incomeType").value = "";
+    document.getElementById("incomeAmount").value = "";
+
+    updateDashboard();
+
+}
+
+
+// Add Expense
+
+function addExpense() {
+
+    let type = document.getElementById("expenseType").value.trim();
+    let amount = Number(document.getElementById("expenseAmount").value);
+
+    if (type == "" || amount <= 0 || !Number.isFinite(amount)) {
+
+        alert("Please enter valid expense details");
+        return;
+
     }
 
-    function renderTransactions() {
-        const transactions = getTransactions();
+    let incomes = getIncomes();
+    let expenses = getExpenses();
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    incomes.forEach(item => {
+
+        totalIncome += Number(item.amount);
+
+    });
+
+    expenses.forEach(item => {
+
+        totalExpense += Number(item.amount);
+
+    });
+
+    let balance = totalIncome - totalExpense;
+
+    if (amount > balance) {
+
+        alert("Insufficient balance! Available balance: " + formatAmount(balance));
+        return;
+
+    }
+
+    let expense = {
+
+        type: type,
+        amount: amount,
+        date: new Date().toLocaleString("en-IN")
+
+    };
+
+    expenses.push(expense);
+
+    localStorage.setItem(getUserKey("expenses"), JSON.stringify(expenses));
+
+    alert("Expense added successfully");
+
+    document.getElementById("expenseType").value = "";
+    document.getElementById("expenseAmount").value = "";
+
+    updateDashboard();
+
+}
+
+
+// Update Cards
+
+function updateCards() {
+
+    let incomes = getIncomes();
+    let expenses = getExpenses();
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    incomes.forEach(item => {
+
+        totalIncome += Number(item.amount);
+
+    });
+
+    expenses.forEach(item => {
+
+        totalExpense += Number(item.amount);
+
+    });
+
+    let totalBalance = totalIncome - totalExpense;
+
+    document.getElementById("totalBalance").innerHTML =
+        formatAmount(totalBalance);
+
+    document.getElementById("totalExpense").innerHTML =
+        formatAmount(totalExpense);
+
+}
+
+
+// Display Income
+
+function displayIncome() {
+
+    let incomes = getIncomes();
+    let expenses = getExpenses();
+
+    let result = document.getElementById("incomeTable");
+
+    result.innerHTML = "";
+
+    if (incomes.length == 0) {
+
+        result.innerHTML = `
+            <tr>
+                <td colspan="4" class="text-center text-secondary p-4">
+                    No income records yet.
+                </td>
+            </tr>
+        `;
+
+        return;
+
+    }
+
+    incomes.forEach((item, index) => {
 
         let balance = 0;
-        let totalExpense = 0;
 
-        const incomeTable = document.getElementById("incomeTable");
-        const expenseTable = document.getElementById("expenseTable");
+        // Add income up to current row
 
-        incomeTable.innerHTML = "";
-        expenseTable.innerHTML = "";
+        for (let i = 0; i <= index; i++) {
 
-        transactions.forEach(function (transaction) {
-            if (transaction.type === "income") {
-                balance += transaction.amount;
-            } else {
-                balance -= transaction.amount;
-                totalExpense += transaction.amount;
-            }
+            balance += Number(incomes[i].amount);
 
-            const row = document.createElement("tr");
+        }
 
-            const values = [
-                transaction.category,
-                (transaction.type === "income" ? "+" : "-") +
-                    transaction.amount.toFixed(2),
-                balance.toFixed(2),
-                transaction.date
-            ];
+        // Subtract expenses
 
-            values.forEach(function (value) {
-                const cell = document.createElement("td");
-                cell.textContent = value;
-                row.appendChild(cell);
-            });
+        expenses.forEach(expense => {
 
-            if (transaction.type === "income") {
-                incomeTable.appendChild(row);
-            } else {
-                expenseTable.appendChild(row);
-            }
+            balance -= Number(expense.amount);
+
         });
 
-        document.getElementById("totalBalance").textContent =
-            "Rs " + balance.toFixed(2) + "/-";
+        result.innerHTML += `
+            <tr>
+                <td>${item.type}</td>
 
-        document.getElementById("totalExpense").textContent =
-            "Rs " + totalExpense.toFixed(2) + "/-";
+                <td class="text-success fw-bold">
+                    + ${formatAmount(item.amount)}
+                </td>
+
+                <td class="fw-bold">
+                    ${formatAmount(balance)}
+                </td>
+
+                <td>${item.date}</td>
+            </tr>
+        `;
+
+    });
+
+}
+
+
+// Display Expense
+
+function displayExpense() {
+
+    let expenses = getExpenses();
+    let incomes = getIncomes();
+
+    let result = document.getElementById("expenseTable");
+
+    result.innerHTML = "";
+
+    if (expenses.length == 0) {
+
+        result.innerHTML = `
+            <tr>
+                <td colspan="4" class="text-center text-secondary p-4">
+                    No expense records yet.
+                </td>
+            </tr>
+        `;
+
+        return;
+
     }
 
-    incomeForm.addEventListener("submit", function (event) {
-        event.preventDefault();
+    let totalIncome = 0;
+    let balance = 0;
 
-        const category = document.getElementById("incomeType").value.trim();
-        const amount = Number(document.getElementById("incomeAmount").value);
+    incomes.forEach(item => {
 
-        if (!category || !Number.isFinite(amount) || amount <= 0) {
-            alert("Please enter valid income details.");
-            return;
-        }
+        totalIncome += Number(item.amount);
 
-        const transactions = getTransactions();
-
-        transactions.push({
-            type: "income",
-            category: category,
-            amount: amount,
-            date: new Date().toLocaleString()
-        });
-
-        saveTransactions(transactions);
-        renderTransactions();
-        incomeForm.reset();
-
-        alert("Income Added Successfully!");
     });
 
-    expenseForm.addEventListener("submit", function (event) {
-        event.preventDefault();
+    balance = totalIncome;
 
-        const category = document.getElementById("expenseType").value.trim();
-        const amount = Number(document.getElementById("expenseAmount").value);
+    expenses.forEach(item => {
 
-        if (!category || !Number.isFinite(amount) || amount <= 0) {
-            alert("Please enter valid expense details.");
-            return;
-        }
+        balance -= Number(item.amount);
 
-        const transactions = getTransactions();
+        result.innerHTML += `
+            <tr>
+                <td>${item.type}</td>
 
-        transactions.push({
-            type: "expense",
-            category: category,
-            amount: amount,
-            date: new Date().toLocaleString()
-        });
+                <td class="text-danger fw-bold">
+                    - ${formatAmount(item.amount)}
+                </td>
 
-        saveTransactions(transactions);
-        renderTransactions();
-        expenseForm.reset();
+                <td class="fw-bold">
+                    ${formatAmount(balance)}
+                </td>
 
-        alert("Expense Added Successfully!");
+                <td>${item.date}</td>
+            </tr>
+        `;
+
     });
 
-    clearBtn.addEventListener("click", function () {
-        const confirmed = confirm(
-            "Are you sure you want to clear all transactions?"
-        );
-
-        if (confirmed) {
-            localStorage.removeItem(storageKey);
-            renderTransactions();
-
-            alert("All transactions cleared.");
-        }
-    });
-
-    logoutBtn.addEventListener("click", function () {
-        localStorage.removeItem("loggedInUser");
-        window.location.href = "index.html";
-    });
-
-    renderTransactions();
 }
+
+
+// Clear All Transactions
+
+function clearTransactions() {
+
+    let confirmClear = confirm("Are you sure you want to clear all transactions?");
+
+    if (confirmClear) {
+
+        localStorage.removeItem(getUserKey("incomes"));
+
+        localStorage.removeItem(getUserKey("expenses"));
+
+        alert("All transactions cleared successfully");
+
+        updateDashboard();
+
+    }
+
+}
+
+
+// Logout
+
+function logout() {
+
+    localStorage.removeItem("loggedInUser");
+
+    localStorage.removeItem("loggedInName");
+
+    window.location.href = "index.html";
+
+}
+
+
+// Update Dashboard
+
+function updateDashboard() {
+
+    updateCards();
+
+    displayIncome();
+
+    displayExpense();
+
+}
+
+
+// Initial Display
+
+updateDashboard();

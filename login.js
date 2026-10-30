@@ -1,24 +1,38 @@
-const loginForm = document.getElementById("loginForm");
 
-loginForm.addEventListener("submit", function (event) {
-    event.preventDefault();
+function login() {
 
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value;
+    let name = document.getElementById("username").value.trim();
+    let password = document.getElementById("password").value;
 
-    const users = JSON.parse(localStorage.getItem("users")) || [];
+    if (name == "" || password == "") {
 
-    const user = users.find(function (item) {
-        return item.username.toLowerCase() === username.toLowerCase() &&
-               item.password === password;
-    });
+        alert("Please fill all fields");
+        return;
+
+    }
+
+    let users = JSON.parse(localStorage.getItem("users")) || [];
+
+    // Find user
+
+    let user = users.find(item =>
+        item.name.toLowerCase() == name.toLowerCase() &&
+        item.password == password
+    );
 
     if (user) {
-        localStorage.setItem("loggedInUser", user.username);
 
-        alert("Login Successful!");
+        alert("Login successful");
+
+        localStorage.setItem("loggedInUser", user.email);
+        localStorage.setItem("loggedInName", user.name);
+
         window.location.href = "home.html";
+
     } else {
-        alert("Invalid username or password. Please register if you do not have an account.");
+
+        alert("Invalid username or password");
+
     }
-});
+
+}
